@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/navbar.dart';
+import '../../widgets/navbar.dart';
 
-class EditarAtleta extends StatelessWidget {
+class EditarAtletaPage extends StatelessWidget {
   final String atleta;
 
-  const EditarAtleta({super.key, required this.atleta});
+  const EditarAtletaPage({super.key, required this.atleta});
 
 
 
   @override
   Widget build(BuildContext context) {
 
-
-      backFunction() {
-        Navigator.pop(context);
-      }
-
+    backFunction() {
+      Navigator.pop(context);
+    }
 
     return Scaffold(
       appBar: appBar(backFunction),

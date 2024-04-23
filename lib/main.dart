@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pages/home.dart';
+import 'pages/atletas/lista.dart';
 import 'theme.dart';
 
 void main() {
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Glads',
       theme: const MaterialTheme(TextTheme()).light(),
-      home: const HomePage()
+      home: const ListaAtletasPage()
     );
   }
 }
