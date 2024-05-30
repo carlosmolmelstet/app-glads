@@ -5,9 +5,9 @@ import '../../widgets/form_atleta.dart';
 import '../../widgets/navbar.dart';
 
 class EditarAtletaPage extends StatelessWidget {
-  final Atleta atleta;
+  final Atleta? atleta;
 
-  const EditarAtletaPage({super.key, required this.atleta});
+  const EditarAtletaPage({super.key, this.atleta});
 
   @override
   Widget build(BuildContext context) {

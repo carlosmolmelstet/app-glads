@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "347414189730",
+    "project_id": "app-glads",
+    "storage_bucket": "app-glads.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:347414189730:android:0b3acdf770ee53485aa9fb",
+        "android_client_info": {
+          "package_name": "com.example.fitness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChWyMkrEs9vXDtEZkwgKUY-AcKQmnqPJg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

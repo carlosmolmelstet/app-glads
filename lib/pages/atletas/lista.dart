@@ -1,7 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fitness/services/firestore.dart';
 import 'package:flutter/material.dart';
-
 import '../../models/atleta.dart';
-import '../../repositories/atletas.dart';
 import '../../widgets/navbar.dart';
 import 'editar.dart';
 
@@ -13,43 +13,46 @@ class ListaAtletasPage extends StatefulWidget {
 }
 
 class _ListaAtletasPageState extends State<ListaAtletasPage> {
-  final List<Atleta> _atletas = AtletasRepository().getAtletas();
-  final List<Atleta> _atletasFiltrados = [];
-  final TextEditingController _controller = TextEditingController();
+  final firestoreService = FirestoreService();
+  String query = '';
 
   @override
   void initState() {
     super.initState();
-    _atletasFiltrados.addAll(_atletas);
   }
 
-  void _filterList(String query) {
-    _atletasFiltrados.clear();
-    if (query.length >= 3) {
-      for (var atleta in _atletas) {
-        if (atleta.nome.toLowerCase().contains(query.toLowerCase())) {
-          _atletasFiltrados.add(atleta);
-        }
-      }
-    } else {
-      _atletasFiltrados.addAll(_atletas);
-    }
-    setState(() {});
-  }
-
-  void _mudarDePagina(Atleta atleta) {
+  void _mudarDePagina([Atleta? atleta]) {
     Navigator.push(context,
         MaterialPageRoute(builder: (_) => EditarAtletaPage(atleta: atleta)));
   }
 
-  void _excluirAtleta(Atleta atleta) {
-    _atletas.remove(atleta);
-    _atletasFiltrados.remove(atleta);
-    setState(() {});
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  List<Atleta> filtrarAtletas(List<Atleta> atletas, String query) {
+    if (query.length < 3) return atletas;
+
+    return atletas
+        .where((element) =>
+            element.nome.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+  }
+
+  @override
+  void didChangeDependencies() {
+    // getClientSteam();
+    super.didChangeDependencies();
   }
 
   @override
   Widget build(BuildContext context) {
+    void excluirAtleta(String id) async {
+      await FirestoreService().deleteAtleta(id);
+      Navigator.pop(context);
+    }
+
     return Scaffold(
       appBar: AppBar(),
       body: Padding(
@@ -57,11 +60,26 @@ class _ListaAtletasPageState extends State<ListaAtletasPage> {
         child: Column(
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   "Lista de atletas",
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.grey[100],
+                  ),
+                  child: IconButton(
+                      onPressed: () => _mudarDePagina(),
+                      icon: const Icon(
+                        Icons.add,
+                        fill: 0.1,
+                        weight: 4,
+                        color: Colors.blue,
+                      )),
+                )
               ],
             ),
             const SizedBox(height: 24),
@@ -71,104 +89,125 @@ class _ListaAtletasPageState extends State<ListaAtletasPage> {
                 prefixIcon: Icon(Icons.search),
                 labelText: 'Procure por um atleta',
               ),
-              controller: _controller,
-              onChanged: _filterList,
+              onChanged: (value) => setState(() {
+                query = value;
+              }),
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView.builder(
-                itemCount: _atletasFiltrados.length,
-                itemBuilder: (BuildContext context, int index) {
-                  String letraInicial =
-                      _atletasFiltrados[index].nome.split(' ')[0][0];
+              child: StreamBuilder<QuerySnapshot>(
+                stream: firestoreService.getClientSteam(query),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-                  return Container(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                backgroundImage: NetworkImage(
-                                    _atletasFiltrados[index].avatar ?? ''),
-                                backgroundColor: Colors.red[200],
-                                child: _atletasFiltrados[index].avatar == null
-                                    ? Text(
-                                        letraInicial,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
-                                      )
-                                    : const SizedBox(),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _atletasFiltrados[index].nome,
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              )
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () {
-                            _mudarDePagina(_atletasFiltrados[index]);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outlined),
-                          onPressed: () => showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) => Dialog(
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                    top: 24, left: 24, right: 24, bottom: 24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: <Widget>[
-                                    Container(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 16),
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        'Deseja excluir o atleta, ${_atletasFiltrados[index].nome}?',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge,
-                                        textAlign: TextAlign.center,
-                                      ),
+                  List<Atleta> atletas = filtrarAtletas(
+                      snapshot.data!.docs
+                          .map((e) => Atleta.fromDocumentSnapshot(e))
+                          .toList(),
+                      query);
+
+                  return ListView.builder(
+                    itemCount: atletas.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      Atleta atleta = atletas[index];
+                      String letraInicial = atleta.nome.split(' ')[0][0];
+
+                      return Container(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundImage:
+                                        NetworkImage(atleta.avatar ?? ''),
+                                    backgroundColor: Colors.red[200],
+                                    child: atleta.avatar == null
+                                        ? Text(
+                                            letraInicial,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium,
+                                          )
+                                        : const SizedBox(),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      atleta.nome,
+                                      style:
+                                          Theme.of(context).textTheme.bodyLarge,
                                     ),
-                                    Row(
+                                  )
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () {
+                                _mudarDePagina(atleta);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outlined),
+                              onPressed: () => showDialog<String>(
+                                context: context,
+                                builder: (BuildContext context) => Dialog(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                        top: 24,
+                                        left: 24,
+                                        right: 24,
+                                        bottom: 24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
-                                      children: [
-                                        OutlinedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Voltar'),
+                                      children: <Widget>[
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 16),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            'Deseja excluir o atleta, ${atleta.nome}?',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge,
+                                            textAlign: TextAlign.center,
+                                          ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        FilledButton(
-                                          onPressed: () {
-                                            _excluirAtleta(
-                                                _atletasFiltrados[index]);
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Excluir'),
-                                        ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            OutlinedButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Voltar'),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            FilledButton(
+                                              onPressed: () {
+                                                excluirAtleta(atleta.id!);
+                                              },
+                                              child: const Text('Excluir'),
+                                            ),
+                                          ],
+                                        )
                                       ],
-                                    )
-                                  ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      ]));
+                          ]));
+                    },
+                  );
                 },
               ),
             ),

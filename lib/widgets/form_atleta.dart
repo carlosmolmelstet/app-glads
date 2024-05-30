@@ -1,15 +1,19 @@
-import 'package:fitness/repositories/atletas.dart';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:fitness/services/firestore.dart';
 import 'package:fitness/validators/formatters/telefone_formatter.dart';
 import 'package:fitness/validators/mixins/validations_mixin.dart';
 import 'package:flutter/material.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import '../models/atleta.dart';
 import '../validators/formatters/cpf_formatter.dart';
 
 class FormAtleta extends StatefulWidget {
-  Atleta atleta;
+  Atleta? atleta;
 
-  FormAtleta({Key? key, required this.atleta}) : super(key: key);
+  FormAtleta({Key? key, this.atleta}) : super(key: key);
 
   @override
   _FormAtletaState createState() => _FormAtletaState();
@@ -17,36 +21,66 @@ class FormAtleta extends StatefulWidget {
 
 class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
   final _form = GlobalKey<FormState>();
+  final FirestoreService _firestore = FirestoreService();
+  final imagePicker = ImagePicker();
+  File? imageFile;
 
   String quantidade = '';
 
+  void pick(ImageSource source) async {
+    final pickedFile = await imagePicker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final avatar = TextEditingController(text: widget.atleta.avatar);
-    final nome = TextEditingController(text: widget.atleta.nome);
-    final cpf = TextEditingController(text: widget.atleta.cpf);
-    final telefone = TextEditingController(text: widget.atleta.telefone);
-    final email = TextEditingController(text: widget.atleta.email);
-    final endereco = TextEditingController(text: widget.atleta.endereco);
+    final avatar = TextEditingController(text: widget.atleta?.avatar);
+    final nome = TextEditingController(text: widget.atleta?.nome);
+    final cpf = TextEditingController(text: widget.atleta?.cpf);
+    final telefone = TextEditingController(text: widget.atleta?.telefone);
+    final email = TextEditingController(text: widget.atleta?.email);
+    final endereco = TextEditingController(text: widget.atleta?.endereco);
 
-    comprar() {
+    salvar() async {
       if (_form.currentState!.validate()) {
+        String? imageUrl;
         Atleta atleta = Atleta(
-          id: widget.atleta.id,
+          id: widget.atleta?.id,
           nome: nome.text,
-          avatar: avatar.text,
+          avatar: "",
           cpf: cpf.text,
           telefone: telefone.text,
           email: email.text,
           endereco: endereco.text,
         );
 
-        AtletasRepository().updateAtleta(atleta);
+        if (imageFile != null) {
+          imageUrl = await FirestoreService().uploadImage(imageFile!);
+          if (imageUrl == null) {
+            return;
+          }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Compra realizada com' + atleta.nome)),
-        );
+          atleta.avatar = imageUrl;
+        }
 
+        if (atleta.id != null) {
+          _firestore.updateAtleta(atleta);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Atleta atualizado com sucesso')),
+          );
+        } else {
+          _firestore.createAtleta(atleta);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Atleta criado com sucesso')),
+          );
+        }
+
+        // Fecha o formulário
         Navigator.pop(context);
       }
     }
@@ -60,8 +94,12 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
                 Stack(
                   children: [
                     CircleAvatar(
-                      backgroundImage: NetworkImage(widget.atleta.avatar ?? ''),
-                      minRadius: 32,
+                      backgroundImage: imageFile != null
+                          ? FileImage(imageFile!)
+                          : widget.atleta!.avatar != null
+                              ? NetworkImage(widget.atleta!.avatar!)
+                              : null as ImageProvider<Object>?,
+                      radius: 32,
                     ),
                     Positioned(
                       height: 64,
@@ -71,7 +109,9 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
                         child: IconButton(
                           icon: const Icon(Icons.edit_outlined,
                               color: Colors.white),
-                          onPressed: () {},
+                          onPressed: () {
+                            pick(ImageSource.gallery);
+                          },
                         ),
                       ),
                     ),
@@ -171,7 +211,7 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: () => comprar(),
+                  onPressed: () => salvar(),
                   child: const Text('Salvar'),
                 ),
               ],
