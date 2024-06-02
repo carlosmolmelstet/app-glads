@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../pages/atletas/lista.dart';
-import '../pages/presencas.dart';
 
 class Navbar extends StatefulWidget {
   final int selectedIndex;
@@ -43,11 +42,6 @@ class _NavbarState extends State<Navbar> {
           name: 'Lista de atletas',
           onTap: () => navigate(const ListaAtletasPage(), 0),
           selected: selectedIndex == 0,
-        ),
-        NavbarItem(
-          name: 'Hisrorico de presença',
-          onTap: () => navigate(const PresencasPage(), 1),
-          selected: selectedIndex == 1,
         ),
         Container(
             padding: const EdgeInsets.only(left: 20, right: 20),
