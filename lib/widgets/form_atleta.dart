@@ -93,14 +93,16 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
               children: [
                 Stack(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: imageFile != null
-                          ? FileImage(imageFile!)
-                          : widget.atleta!.avatar != null
-                              ? NetworkImage(widget.atleta!.avatar!)
-                              : null as ImageProvider<Object>?,
-                      radius: 32,
-                    ),
+                    imageFile != null
+                        ? CircleAvatar(
+                            radius: 32,
+                            backgroundImage: FileImage(imageFile!),
+                          )
+                        : CircleAvatar(
+                            radius: 32,
+                            backgroundImage:
+                                NetworkImage(widget.atleta?.avatar ?? ""),
+                          ),
                     Positioned(
                       height: 64,
                       width: 64,
