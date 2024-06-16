@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fitness/models/atleta.dart';
 
-class FirestoreService {
-  // get collection atletas
+import '../models/posicao.dart';
 
+class FirestoreService {
   final CollectionReference atletas =
       FirebaseFirestore.instance.collection('atletas');
+  final CollectionReference posicoes =
+      FirebaseFirestore.instance.collection('posicoes');
 
   //  CREATE
 
@@ -22,6 +24,7 @@ class FirestoreService {
         'cpf': atleta.cpf,
         'endereco': atleta.endereco,
         'avatar': atleta.avatar,
+        "posicaoId": atleta.posicaoId,
       });
     } catch (e) {
       print(e);
@@ -46,6 +49,12 @@ class FirestoreService {
     return atletasSteam;
   }
 
+  Stream<QuerySnapshot> getClientPosicaoSteam(String query) {
+    final atletasSteam = posicoes.orderBy('nome').snapshots();
+
+    return atletasSteam;
+  }
+
   // UPDATE
 
   Future<void> updateAtleta(Atleta atleta) {
@@ -56,6 +65,7 @@ class FirestoreService {
       'cpf': atleta.cpf,
       'endereco': atleta.endereco,
       'avatar': atleta.avatar,
+      "posicaoId": atleta.posicaoId,
     });
   }
 
@@ -81,5 +91,40 @@ class FirestoreService {
       print('Erro ao fazer upload da imagem: $e');
       return null;
     }
+  }
+
+  // Métodos CRUD para Posicao
+  // CREATE
+  Future<void> createPosicao(Posicao posicao) async {
+    try {
+      await posicoes.add(posicao.toJson());
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  // READ
+  Future<List<Posicao>> getPosicoes() async {
+    var buscarPosicoes = await posicoes.orderBy('nome').get();
+    List<Posicao> result = [];
+    for (var element in buscarPosicoes.docs) {
+      var posicao = Posicao.fromDocumentSnapshot(element);
+      result.add(posicao);
+    }
+    return result;
+  }
+
+  Stream<QuerySnapshot> getPosicoesStream() {
+    return posicoes.orderBy('nome').snapshots();
+  }
+
+  // UPDATE
+  Future<void> updatePosicao(Posicao posicao) {
+    return posicoes.doc(posicao.id).update(posicao.toJson());
+  }
+
+  // DELETE
+  Future<void> deletePosicao(String id) {
+    return posicoes.doc(id).delete();
   }
 }

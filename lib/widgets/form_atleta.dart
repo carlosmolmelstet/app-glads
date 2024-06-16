@@ -1,13 +1,13 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:fitness/services/firestore.dart';
 import 'package:fitness/validators/formatters/telefone_formatter.dart';
 import 'package:fitness/validators/mixins/validations_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+
 import '../models/atleta.dart';
+import '../models/posicao.dart';
 import '../validators/formatters/cpf_formatter.dart';
 
 class FormAtleta extends StatefulWidget {
@@ -24,8 +24,35 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
   final FirestoreService _firestore = FirestoreService();
   final imagePicker = ImagePicker();
   File? imageFile;
+  List<Posicao> posicoes = [];
+  String? selectedPosicaoId;
 
-  String quantidade = '';
+  final TextEditingController avatarController = TextEditingController();
+  final TextEditingController nomeController = TextEditingController();
+  final TextEditingController cpfController = TextEditingController();
+  final TextEditingController telefoneController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController enderecoController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosicoes();
+    if (widget.atleta != null) {
+      selectedPosicaoId = widget.atleta!.posicaoId ?? '';
+      avatarController.text = widget.atleta!.avatar ?? '';
+      nomeController.text = widget.atleta!.nome;
+      cpfController.text = widget.atleta!.cpf;
+      telefoneController.text = widget.atleta!.telefone;
+      emailController.text = widget.atleta!.email;
+      enderecoController.text = widget.atleta!.endereco;
+    }
+  }
+
+  void _loadPosicoes() async {
+    posicoes = await _firestore.getPosicoes();
+    setState(() {});
+  }
 
   void pick(ImageSource source) async {
     final pickedFile = await imagePicker.pickImage(source: source);
@@ -39,24 +66,18 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = TextEditingController(text: widget.atleta?.avatar);
-    final nome = TextEditingController(text: widget.atleta?.nome);
-    final cpf = TextEditingController(text: widget.atleta?.cpf);
-    final telefone = TextEditingController(text: widget.atleta?.telefone);
-    final email = TextEditingController(text: widget.atleta?.email);
-    final endereco = TextEditingController(text: widget.atleta?.endereco);
-
     salvar() async {
       if (_form.currentState!.validate()) {
         String? imageUrl;
         Atleta atleta = Atleta(
           id: widget.atleta?.id,
-          nome: nome.text,
+          nome: nomeController.text,
           avatar: "",
-          cpf: cpf.text,
-          telefone: telefone.text,
-          email: email.text,
-          endereco: endereco.text,
+          cpf: cpfController.text,
+          telefone: telefoneController.text,
+          email: emailController.text,
+          endereco: enderecoController.text,
+          posicaoId: selectedPosicaoId, // Adicionando posicaoId
         );
 
         if (imageFile != null) {
@@ -122,7 +143,7 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
                 const SizedBox(width: 16),
                 Flexible(
                   child: TextFormField(
-                    controller: nome,
+                    controller: nomeController,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: 'Nome completo',
@@ -141,12 +162,14 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
               children: [
                 Flexible(
                   child: TextFormField(
-                    controller: cpf,
+                    controller: cpfController,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: 'CPF',
                     ),
-                    inputFormatters: [CPFFormatter(initialText: cpf.text)],
+                    inputFormatters: [
+                      CPFFormatter(initialText: cpfController.text)
+                    ],
                     keyboardType: TextInputType.number,
                     validator: (value) => combine([
                       () => isNotEmpty(value),
@@ -157,13 +180,13 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
                 const SizedBox(width: 16),
                 Flexible(
                   child: TextFormField(
-                    controller: telefone,
+                    controller: telefoneController,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: 'Telefone',
                     ),
                     inputFormatters: [
-                      TelefoneFormatter(initialText: telefone.text)
+                      TelefoneFormatter(initialText: telefoneController.text)
                     ],
                     keyboardType: TextInputType.phone,
                     validator: (value) => combine([
@@ -176,7 +199,7 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
             ),
             const SizedBox(height: 24),
             TextFormField(
-              controller: email,
+              controller: emailController,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'E-mail',
@@ -190,16 +213,37 @@ class _FormAtletaState extends State<FormAtleta> with ValidationsMixin {
             ),
             const SizedBox(height: 24),
             TextFormField(
-              controller: endereco,
+              controller: enderecoController,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: 'Enderço',
+                labelText: 'Endereço',
               ),
               keyboardType: TextInputType.streetAddress,
               validator: (value) => combine([
                 () => isNotEmpty(value),
                 () => hasMinChars(value, 10),
               ]),
+            ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<String>(
+              value: selectedPosicaoId,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Posição',
+              ),
+              items: posicoes.map((Posicao posicao) {
+                return DropdownMenuItem<String>(
+                  value: posicao.id,
+                  child: Text(posicao.nome),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedPosicaoId = newValue;
+                });
+              },
+              validator: (value) =>
+                  value != null ? null : 'Selecione uma posição',
             ),
             const SizedBox(height: 24),
             Row(

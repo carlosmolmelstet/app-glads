@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../pages/atletas/lista.dart';
+import '../pages/posicoes/lista.dart';
 
 class Navbar extends StatefulWidget {
   final int selectedIndex;
@@ -14,13 +15,8 @@ class Navbar extends StatefulWidget {
 class _NavbarState extends State<Navbar> {
   @override
   Widget build(BuildContext context) {
-    int selectedIndex = widget.selectedIndex;
-
-    void navigate(Widget page, int index) {
+    void navigate(Widget page) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-      setState(() {
-        selectedIndex = index;
-      });
     }
 
     return Drawer(
@@ -40,8 +36,11 @@ class _NavbarState extends State<Navbar> {
                 Text("Menu", style: Theme.of(context).textTheme.labelSmall!)),
         NavbarItem(
           name: 'Lista de atletas',
-          onTap: () => navigate(const ListaAtletasPage(), 0),
-          selected: selectedIndex == 0,
+          onTap: () => navigate(const ListaAtletasPage()),
+        ),
+        NavbarItem(
+          name: 'Lista de posições',
+          onTap: () => navigate(const ListaPosicoesPage()),
         ),
         Container(
             padding: const EdgeInsets.only(left: 20, right: 20),
@@ -52,29 +51,21 @@ class _NavbarState extends State<Navbar> {
 }
 
 class NavbarItem extends StatelessWidget {
-  const NavbarItem(
-      {super.key,
-      required this.name,
-      required this.onTap,
-      required this.selected});
+  const NavbarItem({super.key, required this.name, required this.onTap});
 
   final String name;
   final Function() onTap;
-  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30.0),
-          color: selected
-              ? Theme.of(context).colorScheme.secondaryContainer
-              : Colors.transparent,
+          color: Colors.transparent,
         ),
         child: ListTile(
           title: Text(name),
           onTap: onTap,
-          selected: selected,
           selectedColor: Theme.of(context).colorScheme.onSecondaryContainer,
           titleTextStyle: Theme.of(context).textTheme.labelLarge,
         ));

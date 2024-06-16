@@ -8,6 +8,7 @@ class Atleta {
   String telefone;
   String email;
   String endereco;
+  String? posicaoId;
 
   Atleta({
     required this.id,
@@ -17,6 +18,7 @@ class Atleta {
     required this.telefone,
     required this.email,
     required this.endereco,
+    required this.posicaoId,
   });
 
   toJson() {
@@ -28,11 +30,11 @@ class Atleta {
       'telefone': telefone,
       'email': email,
       'endereco': endereco,
+      'posicaoId': posicaoId,
     };
   }
 
   factory Atleta.fromDocumentSnapshot(DocumentSnapshot snapshot) {
-    // Aqui você pode acessar os campos do documento e criar uma instância de Atleta
     return Atleta(
       id: snapshot.id,
       nome: snapshot['nome'],
@@ -41,6 +43,7 @@ class Atleta {
       telefone: snapshot['telefone'],
       email: snapshot['email'],
       endereco: snapshot['endereco'],
+      posicaoId: snapshot['posicaoId'],
     );
   }
 }
